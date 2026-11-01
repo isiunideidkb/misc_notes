@@ -1,0 +1,42 @@
+see PsyQ doc: file formats,libref41.pdf
+see https://psx-spx.consoledev.net
+
+
+collected information
+
+
+PCSX-Redux Lua Console 
+LuaJIT 2.1.1785598229 
+JIT: ON SSE3 SSE4.1 BMI2 fold cse dce fwd dse narrow loop abc sink fuse 
+Shader compiled: program ID = 4 
+Shader compiled: program ID = 7 
+正在添加... 
+添加成功 
+[LOG] enter CdAsyncSeekL with 160200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 180200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter open for cdrom:SYSTEM.CNF;1
+[LOG] enter CdAsyncSeekL with 220200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 160200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 180200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 250600 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter open for cdrom:\SLPS_016.03;1
+[LOG] enter CdAsyncSeekL with 220200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 160200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 180200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 230200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 160200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 180200 
+[LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
+[LOG] enter CdAsyncSeekL with 240200 
+[LOG] enter CdAsyncReadSector,read 301 sector,to 80010000, with mode 80,starts with last CdSeek 
