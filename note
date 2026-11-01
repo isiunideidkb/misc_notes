@@ -1,3 +1,7 @@
+todo: CDROM,SPU,DMA Register hook,trace the calling chain
+
+
+
 see PsyQ doc: file formats,libref41.pdf
 see https://psx-spx.consoledev.net
 
@@ -40,3 +44,7 @@ Shader compiled: program ID = 7
 [LOG] enter CdAsyncReadSector,read 1 sector,to 8474, with mode 80,starts with last CdSeek 
 [LOG] enter CdAsyncSeekL with 240200 
 [LOG] enter CdAsyncReadSector,read 301 sector,to 80010000, with mode 80,starts with last CdSeek 
+
+
+
+根据分析 游戏大概率使用了直接与SPU,CdRom交互的单元
