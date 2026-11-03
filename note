@@ -15,3 +15,6 @@ see https://psx-spx.consoledev.net
 
 尝试Hook 更多的voice通道 以及一些WRDATA
 SPU-ADPCM
+
+
+另外 这个SPU-MEM SPU-SAMPLE的读写值也有问题 要*8!
