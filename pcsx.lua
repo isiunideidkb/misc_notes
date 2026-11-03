@@ -255,7 +255,10 @@ function handle_hchpctl(address,width,cause)
     data = f:read(1);
     local mask = bit32.extract(data[0],5,3);
     if mask == 0 then
-        output_str = "NITHER enalbed!" .. tostring(tonumber(mask))
+        --output_str = "NITHER enalbed!" .. tostring(tonumber(mask))
+	print("IGNOREME")
+	PCSX.resumeEmulator();
+	return true;
     elseif mask == 1 then
         output_str = "Sound Map enabled"
     elseif mask == 2 then
@@ -272,7 +275,7 @@ function handle_cdrom_dma(address,width,cause)
     PCSX.resumeEmulator();
     PCSX.pauseEmulator(); --等待CPU写入
     local f = PCSX.getMemoryAsFile()
-    local output_string = "[DMA] "
+    local output_string = "[DMA-CDROM] "
     --read DMA base address (Channel 0..6)
     f:rSeek(0x1F8010B0);
     data = f:read(4);
@@ -283,7 +286,7 @@ function handle_cdrom_dma(address,width,cause)
     data = f:read(2);
     local byte_amount = data[0] + 0x100 * data[1];
     output_string = output_string .. string.format(" ,read %d bytes", byte_amount);
-
+    
     f:rSeek(0x1F8010B8);
     data = f:read(4); --4字节 注意! 返回的是Buffer!!
     --data[0] = first byte!!
@@ -292,13 +295,11 @@ function handle_cdrom_dma(address,width,cause)
     local is_start = 0;
     transfer_mode = transfer_mode + tonumber(bit32.extract(data[1],1,2)); --1,2位 0计数的
     is_start = tonumber(bit32.extract(data[3],1,1));
-    if(is_start == 1) then
-        output_string = output_string .. " ,starting";
-    else
-	PCSX.resumeEmulator();	
-        return true;
-    end
-
+--  if(is_start == 1) then
+--      output_string = output_string .. " ,starting";
+--  else
+--  end
+    
     local dir = tonumber(bit32.extract(data[0],0,1));
     if(dir == 1) then
         output_string = output_string .. " ,RAM to Device!";
@@ -363,17 +364,44 @@ function handle_spu_dma(address,width,cause)
     end
 
     local is_start = bit32.extract(info[3], 0, 1);  -- CHCR bit 24
-    if is_start == 1 then
-        local final_str = "[SPU-DMA] rw from addr(CPU bus) " .. string.format("0x%X", addr) ..
+    --if is_start == 1 then
+    if true then
+        local final_str = "[DMA-SPU] rw from addr(CPU bus) " .. string.format("0x%X", addr) ..
                           " with " .. tostring(block_size) .. " words per block, with " ..
                           tostring(block_amount) .. dir
         print(final_str)
     end
-
+    
     PCSX.resumeEmulator();
 end
 
+DUMP_PATH = "/tmp/mem.dmp"
 
+function dump_memory(addr, size)
+    os.remove(DUMP_PATH)          -- 每次先删旧文件
+
+    local mem = PCSX.getMemPtr()
+    if not mem then
+        print("getMemPtr() failed")
+        return
+    end
+
+    local f = io.open(DUMP_PATH, "wb")
+    if not f then
+        print("cannot open " .. DUMP_PATH)
+        return
+    end
+
+    -- C 指针：mem[addr] 就是 addr 处的字节，不需要 +1
+    for i = 0, size - 1 do
+        local b = mem[addr + i]
+        if b < 0 then b = b + 256 end   -- cdata int8 符号扩展修正
+        f:write(string.char(b))
+    end
+
+    f:close()
+    print(string.format("dumped %d bytes @ 0x%08X -> %s", size, addr, DUMP_PATH))
+end
 print("正在添加...")
 
 br = PCSX.addBreakpoint(0x1f801801, "Write", 1, "trap in bank 0 COMMAND", handle_command);
