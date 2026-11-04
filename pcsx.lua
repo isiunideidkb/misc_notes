@@ -224,6 +224,8 @@ function handle_command(address,width,cause)
             alias_suffix = alias_suffix .. "(SeekP)"
         elseif data[0] == 0x1b then
             alias_suffix = alias_suffix .. "(ReadS)"
+	elseif data[0] == 0xe then
+	    alias_suffix = alias_suffix .. "(Setmode)"
         end
         output_str = string.format("[CDROM] write command 0x%x" .. alias_suffix, data[0]);
         print(output_str);
@@ -256,7 +258,7 @@ function handle_hchpctl(address,width,cause)
     local mask = bit32.extract(data[0],5,3);
     if mask == 0 then
         --output_str = "NITHER enalbed!" .. tostring(tonumber(mask))
-	print("IGNOREME")
+--	print("IGNOREME")
 	PCSX.resumeEmulator();
 	return true;
     elseif mask == 1 then
@@ -312,6 +314,16 @@ function handle_cdrom_dma(address,width,cause)
 end
 
 
+function handle_wrdata(addr,width,cau)
+    PCSX.resumeEmulator();
+    PCSX.pauseEmulator();
+    --
+    local f = PCSX.getMemoryAsFile();
+    f:rSeek(0x1F801801);
+    data = f:read(1);
+    print(string.format("[CDROM] Write 0x%X to WRDATA ",tonumber(data[0])))
+    PCSX.resumeEmulator();    
+end
 
 --2 byte
 function handle_spu_sample(address,width,cause)
@@ -322,8 +334,22 @@ function handle_spu_sample(address,width,cause)
     local data = f:read(2);
     local ram_not_mul = data[0] + 0x100 * data[1];
     local ram_addr = ram_not_mul * 8;
-    print(string.format("[SPU-SAMPLE-PLAY] write 0x%X(!!SPU ram!!) to 0x%X: ", tonumber(ram_addr), tonumber(address)))
+    local channel = (tonumber(address) - 0x1F801C06) / 0x10;
+    print(string.format("[SPU-SAMPLE-SSA] write 0x%X(!!SPU ram!!) to 0x%X (No. %d channel): ", tonumber(ram_addr), tonumber(address),channel))
     PCSX.resumeEmulator();
+end
+
+function handle_spu_loop(address,width,cause)
+    PCSX.resumeEmulator();
+    PCSX.pauseEmulator();
+    local f = PCSX.getMemoryAsFile()
+    f:rSeek(tonumber(address));
+    local data = f:read(2);
+    local ram_not_mul = data[0] + 0x100 * data[1];
+    local ram_addr = ram_not_mul * 8;
+    local channel = (tonumber(address) - 0x1F801C0E) / 0x10;
+    print(string.format("[SPU-SAMPLE-LASX] write 0x%X(!!SPU ram!!) to 0x%X (No. %d channel): ", tonumber(ram_addr), tonumber(address),channel))
+    PCSX.resumeEmulator();    
 end
 
 --2 byte set SPU internal bus target addr for DMA
@@ -378,7 +404,11 @@ end
 DUMP_PATH = "/tmp/mem.dmp"
 
 function dump_memory(addr, size)
+    PCSX.pauseEmulator();    
     os.remove(DUMP_PATH)          -- 每次先删旧文件
+    if(addr >= 0x80000000) then
+	addr = addr - 0x80000000
+    end
 
     local mem = PCSX.getMemPtr()
     if not mem then
@@ -401,6 +431,7 @@ function dump_memory(addr, size)
 
     f:close()
     print(string.format("dumped %d bytes @ 0x%08X -> %s", size, addr, DUMP_PATH))
+    PCSX.resumeEmulator();
 end
 print("正在添加...")
 
@@ -410,17 +441,38 @@ br:enable();
 br_param = PCSX.addBreakpoint(0x1f801802, "Write", 1, "trap in bank 0 PARAMETER", handle_parameter);
 br_param:enable();
 
+br_wrdata = PCSX.addBreakpoint(0x1F801801, "Write", 1, "trap in bank 0 WRDATA", handle_wrdata);
+br_wrdata:enable();
+
 br_hchpctl = PCSX.addBreakpoint(0x1f801803, "Write", 1, "trap in bank 0 HCHPCTL", handle_hchpctl);
 br_hchpctl:enable();
 
 br_dma = PCSX.addBreakpoint(0x1F8010B8, "Write", 4, "trap DMA channel 3 CHCR", handle_cdrom_dma);
 br_dma:enable();
 
+--[[
+    
 br_vc1 = PCSX.addBreakpoint(0x1F801C0E, "Write", 2, "SPU LSAX voice 0", handle_spu_sample);
 br_vc1:enable();
 
 br_vc2 = PCSX.addBreakpoint(0x1F801C1E, "Write", 2, "SPU LSAX voice 1", handle_spu_sample);
 br_vc2:enable();
+]]--
+
+--todo 更多channel 每个是0x10 到channel 23(0开始)
+
+for i = 0, 23 do
+    local addr = 0x1F801C06 + i * 0x10
+    _G["br_vc" .. i] = PCSX.addBreakpoint(addr, "Write", 2, "SPU SSA voice " .. i, handle_spu_sample)
+    _G["br_vc" .. i]:enable()
+end
+
+
+for i = 0, 23 do
+    local addr = 0x1F801C0E + i * 0x10
+    _G["br_vclsax" .. i] = PCSX.addBreakpoint(addr, "Write", 2, "SPU LSAX voice " .. i, handle_spu_loop)
+    _G["br_vclsax" .. i]:enable()
+end
 
 br_spumem = PCSX.addBreakpoint(0x1f801da6, "Write", 2, "SPU transfer address", handle_spu_mem);
 br_spumem:enable();
@@ -429,3 +481,24 @@ br_spudma = PCSX.addBreakpoint(0x1F8010C8, "Write", 4, "SPU DMA CHCR", handle_sp
 br_spudma:enable();
 
 print("添加成功")
+-- 极简 SPU ManualWrite 追踪：无状态，只打印事件
+local halfword_count = 0  -- 可选计数器，方便看总数
+
+-- DATA FIFO 写：每次打印写入的 halfword
+PCSX.addBreakpoint(0x1F801DA8, "Write", 2, "FIFO_WRITE",
+    function(addr, width, cause, value)
+        halfword_count = halfword_count + 1
+        print(string.format("[SPU-FIFO] HW#%d: 0x%04X (bytes=%d)",
+            halfword_count, value, halfword_count * 2))
+    end
+):enable()
+
+-- SPUCNT 写：只关注 bit5-4 == 1（ManualWrite）
+PCSX.addBreakpoint(0x1F801DAA, "Write", 2, "SPUCNT_WRITE",
+    function(addr, width, cause, value)
+        local mode = bit32.extract(value, 4, 2)
+        if mode == 1 then
+            print("[SPUCNT] ManualWrite triggered")
+        end
+    end
+):enable()

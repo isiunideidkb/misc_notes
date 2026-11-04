@@ -13,8 +13,17 @@ see https://psx-spx.consoledev.net
 的大概有204K的数据 我们可以差不多知道 每个数据差不多都是204K?
 写到SPU RAM里面？！！这到底是干什么？！！这好像并不是播放的 而且voice 1 voice2也没有明显的play sample的指令 我们需要看看其他的通道 简直诡异到家了
 
-尝试Hook 更多的voice通道 以及一些WRDATA
-SPU-ADPCM
+尝试Hook 更多的voice通道 以及一些WRDATA : ok
+SPU-ADPCM : ok
 
 
-另外 这个SPU-MEM SPU-SAMPLE的读写值也有问题 要*8!
+另外 这个SPU-MEM SPU-SAMPLE的读写值也有问题 要*8! : ok
+
+
+todo 因为pcsx-redux Lua API的硬性限制 我们根本无法知道write trap想要写入的值是什么 如果直接resume -> pause可能会造成非常严重的指令时序问题 我们只能使用非常硬的方法 解析当前指令寄存器 然后把当前指令的operand看即将想要写入的值即可
+
+todo 可能因为上面的原因还是什么 SPU的部分内存写入压根就没有记录 我这个SPUDMA所有可以记录的就是写0  然后呢 在高位地址写一点这个lapks.bin? 看似是无意义的 而且更加严重的 pcsx-redux运行这个游戏会崩溃 可能因为这个模拟器本身的局限性！ DMA或者ManualWrite压根就没有记录到!!
+
+
+
+尝试换duckstation或者继续撑着用
