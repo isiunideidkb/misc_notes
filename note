@@ -24,9 +24,10 @@ todo 因为pcsx-redux Lua API的硬性限制 我们根本无法知道write trap�
 
 todo 可能因为上面的原因还是什么 SPU的部分内存写入压根就没有记录 我这个SPUDMA所有可以记录的就是写0  然后呢 在高位地址写一点这个lapks.bin? 看似是无意义的 而且更加严重的 pcsx-redux运行这个游戏会崩溃 可能因为这个模拟器本身的局限性！ DMA或者ManualWrite压根就没有记录到!!
 
+todo 如果可以尝试更换gdb(guile)后端
 
-
-尝试换duckstation或者继续撑着用
+尝试换duckstation或者继续撑着用 不过换gdb 后端
 
 
 FUCK YOU! PCSX-REDUX Write TrapTrap了个寂寞!
+
