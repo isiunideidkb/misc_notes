@@ -20,14 +20,10 @@ SPU-ADPCM : ok
 另外 这个SPU-MEM SPU-SAMPLE的读写值也有问题 要*8! : ok
 
 
-todo 因为pcsx-redux Lua API的硬性限制 我们根本无法知道write trap想要写入的值是什么 如果直接resume -> pause可能会造成非常严重的指令时序问题 我们只能使用非常硬的方法 解析当前指令寄存器 然后把当前指令的operand看即将想要写入的值即可
+todo 因为pcsx-redux Lua API的硬性限制 我们根本无法知道write trap想要写入的值是什么 如果直接resume -> pause可能会造成非常严重的指令时序问题 我们只能使用非常硬的方法 解析当前指令寄存器 然后把当前指令的operand看即将想要写入的值即可 : deprecated
 
-todo 可能因为上面的原因还是什么 SPU的部分内存写入压根就没有记录 我这个SPUDMA所有可以记录的就是写0  然后呢 在高位地址写一点这个lapks.bin? 看似是无意义的 而且更加严重的 pcsx-redux运行这个游戏会崩溃 可能因为这个模拟器本身的局限性！ DMA或者ManualWrite压根就没有记录到!!
-
-todo 如果可以尝试更换gdb(guile)后端
-
-尝试换duckstation或者继续撑着用 不过换gdb 后端
+todo 可能因为上面的原因还是什么 SPU的部分内存写入压根就没有记录 我这个SPUDMA所有可以记录的就是写0  然后呢 在高位地址写一点这个lapks.bin? 看似是无意义的 而且更加严重的 pcsx-redux运行这个游戏会崩溃 可能因为这个模拟器本身的局限性！ DMA或者ManualWrite压根就没有记录到!! : depreacted
 
 
-FUCK YOU! PCSX-REDUX Write TrapTrap了个寂寞!
-
+游戏没有使用 XA-ADPCM 或者 Sound Map
+唯一可能的就是那个写7FFF 期待寄存器会给这个地址回环到起始 因为DMA传输了很大的 其他的内存全部都是障眼法 因为全部都是0!

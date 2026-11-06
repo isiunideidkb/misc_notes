@@ -482,9 +482,11 @@ br_spudma:enable();
 
 print("添加成功")
 -- 极简 SPU ManualWrite 追踪：无状态，只打印事件
-local halfword_count = 0  -- 可选计数器，方便看总数
 
--- DATA FIFO 写：每次打印写入的 halfword
+
+-- DATA FIFO 写：每次打印写入的 halfword deprecated : 游戏并没有用如此低性能的方案
+--[[
+local halfword_count = 0  -- 可选计数器，方便看总数    
 PCSX.addBreakpoint(0x1F801DA8, "Write", 2, "FIFO_WRITE",
     function(addr, width, cause, value)
         halfword_count = halfword_count + 1
@@ -493,7 +495,7 @@ PCSX.addBreakpoint(0x1F801DA8, "Write", 2, "FIFO_WRITE",
     end
 ):enable()
 
--- SPUCNT 写：只关注 bit5-4 == 1（ManualWrite）
+-- SPUCNT 写：只关注 bit5-4 == 1（ManualWrite） deprecated : 游戏并没有用如此低性能的方案
 PCSX.addBreakpoint(0x1F801DAA, "Write", 2, "SPUCNT_WRITE",
     function(addr, width, cause, value)
         local mode = bit32.extract(value, 4, 2)
@@ -502,3 +504,4 @@ PCSX.addBreakpoint(0x1F801DAA, "Write", 2, "SPUCNT_WRITE",
         end
     end
 ):enable()
+]]--
