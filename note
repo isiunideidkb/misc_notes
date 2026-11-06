@@ -27,3 +27,23 @@ todo 可能因为上面的原因还是什么 SPU的部分内存写入压根就�
 
 游戏没有使用 XA-ADPCM 或者 Sound Map
 唯一可能的就是那个写7FFF 期待寄存器会给这个地址回环到起始 因为DMA传输了很大的 其他的内存全部都是障眼法 因为全部都是0!
+还需要观察CDROM的Setloc指令 寻找对应的扇区 然后通过扇区找到对应的文件 不过我实在懒得写了
+voice.bin: PCM 可以直接打开 略过
+bin.bin 这个文件太简单了 略过 不过需要注意 这个大文件里面有多个小文件的头
+lapks.bin 游戏内部的文件 大概率一些音频的资源和文件都在这里
+sitea.bin: 未知??
+xa/*  未知 
+movie/* 未知 不过实际上有很多都是User-defined的后缀 需要观察CD-ROM DMA/Setloc的行为
+
+ia33@ia33-pc /mnt % file ./*
+./bin.bin:     Sony PlayStation PSX image, 4-Bit, Pixel at (768,0) Size=256x32, 16 CLUT Entries at (0,480)
+./lain_1.inf:  ASCII text, with CRLF line terminators
+./lapks.bin:   data
+./movie:       directory
+./sitea.bin:   data
+./slps_016.03: Sony Playstation executable PC=0x8001307c, .text=[0x80010000,0x96800], Stack=0x801ffff0, (Japan area)
+./snd.bin:     data
+./system.cnf:  ASCII text, with CRLF line terminators
+./voice.bin:   data
+./xa:          directory
+ia33@ia33-pc /mnt %
