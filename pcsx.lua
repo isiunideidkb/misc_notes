@@ -141,6 +141,7 @@ function try_trace()
     local guest_mem = PCSX.getMemPtr();
     local init_sp = 0x001FFF00; --这个模拟器好像不听PE而是CNF的 不过无伤大雅
     local cur_sp = gprs.sp;
+    print(string.format("SP: 0x%X",cur_sp));
     if(cur_sp >= 0x80000000) then
 	cur_sp -= 0x80000000; --转换虚拟地址到物理地址
     end
@@ -150,11 +151,11 @@ function try_trace()
     --R300A little-endian!
     local initial_offset = 0;
     while true do
-	if (tonumber(cur_sp)+initial_offset+3) >= 0x00010000 and
-	(tonumber(cur_sp)+initial_offset+3) < 0x000A6800 then
-	    print("!!overflowed!!")
-	    break;
-	end
+--	if (tonumber(cur_sp)+initial_offset+3) >= 0x00010000 and
+--	(tonumber(cur_sp)+initial_offset+3) < 0x000A6800 then
+--	    print("!!overflowed!!")
+--	    break;
+--	end
 	if cur_sp+initial_offset >= init_sp then
 	    print("reached edge,exit")
 	    break;
@@ -202,8 +203,6 @@ function bit32.extract(n, field, width)
 end
 
 function handle_command(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile() --为什么IO空间地址的读写并没有提供??
     --尝试检查 DMA Control register的CDROM使能位
     f:rSeek(0x1f801801);
@@ -238,8 +237,6 @@ end
 --0x1f801802    通过多次写 会清空 bank0.ADDRESS.PRMWRDY 可能BIOS需要初始等PRMEMPT 然后再写到PRMWRDY 然后写CLR寄存器
 --先parameter还是先command? COMMAND写会drain the parameter FIFO注意 所以是command后parameter
 function handle_parameter(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile()
     f:rSeek(0x1f801802);
     data = f:read(1);
@@ -249,8 +246,6 @@ end
 
 --0x1f801803 write
 function handle_hchpctl(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile()
     local output_str = ""
     f:rSeek(0x1f801803);
@@ -274,8 +269,6 @@ end
 
 --write trigger 1F8010B8h DMA Channel Control
 function handle_cdrom_dma(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator(); --等待CPU写入
     local f = PCSX.getMemoryAsFile()
     local output_string = "[DMA-CDROM] "
     --read DMA base address (Channel 0..6)
@@ -315,8 +308,6 @@ end
 
 
 function handle_wrdata(addr,width,cau)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     --
     local f = PCSX.getMemoryAsFile();
     f:rSeek(0x1F801801);
@@ -327,8 +318,6 @@ end
 
 --2 byte
 function handle_spu_sample(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile()
     f:rSeek(tonumber(address));
     local data = f:read(2);
@@ -336,12 +325,13 @@ function handle_spu_sample(address,width,cause)
     local ram_addr = ram_not_mul * 8;
     local channel = (tonumber(address) - 0x1F801C06) / 0x10;
     print(string.format("[SPU-SAMPLE-SSA] write 0x%X(!!SPU ram!!) to 0x%X (No. %d channel): ", tonumber(ram_addr), tonumber(address),channel))
+    print("========Stack Trace========");
+    try_trace();
+    print("========Stack Trace End========");
     PCSX.resumeEmulator();
 end
 
 function handle_spu_loop(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile()
     f:rSeek(tonumber(address));
     local data = f:read(2);
@@ -354,8 +344,6 @@ end
 
 --2 byte set SPU internal bus target addr for DMA
 function handle_spu_mem(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile()
     f:rSeek(tonumber(address));
     local data = f:read(2);
@@ -367,8 +355,6 @@ end
 
 --1F8010Cxh
 function handle_spu_dma(address,width,cause)
-    PCSX.resumeEmulator();
-    PCSX.pauseEmulator();
     local f = PCSX.getMemoryAsFile();
 
     f:rSeek(0x1F8010C0);
@@ -392,13 +378,25 @@ function handle_spu_dma(address,width,cause)
     local is_start = bit32.extract(info[3], 0, 1);  -- CHCR bit 24
     --if is_start == 1 then
     if true then
-        local final_str = "[DMA-SPU] rw from addr(CPU bus) " .. string.format("0x%X", addr) ..
+        local final_str = "[DMA-SPU]" ..
                           " with " .. tostring(block_size) .. " words per block, with " ..
                           tostring(block_amount) .. dir
         print(final_str)
     end
     
     PCSX.resumeEmulator();
+end
+
+
+function handle_spu_dma_base(addr,width,cause)
+    local f = PCSX.getMemoryAsFile();
+
+    f:rSeek(0x1F8010C0);
+    local addr_data = f:read(4);
+    local addr = addr_data[0] + addr_data[1]*0x100 + addr_data[2]*0x10000 + addr_data[3]*0x1000000;
+
+    print(string.format("[DMA-SPU] set DMA ram 0x%X",tonumber(addr)));
+    PCSX.resumeEmulator();    
 end
 
 DUMP_PATH = "/tmp/mem.dmp"
@@ -480,13 +478,15 @@ br_spumem:enable();
 br_spudma = PCSX.addBreakpoint(0x1F8010C8, "Write", 4, "SPU DMA CHCR", handle_spu_dma);
 br_spudma:enable();
 
+br_spudmabase = PCSX.addBreakpoint(0x1F8010C0, "Write", 4, "SPU DMA BASE", handle_spu_dma_base);
+br_spudmabase:enable();
+
+
 print("添加成功")
 -- 极简 SPU ManualWrite 追踪：无状态，只打印事件
+local halfword_count = 0  -- 可选计数器，方便看总数
 
-
--- DATA FIFO 写：每次打印写入的 halfword deprecated : 游戏并没有用如此低性能的方案
---[[
-local halfword_count = 0  -- 可选计数器，方便看总数    
+-- DATA FIFO 写：每次打印写入的 halfword
 PCSX.addBreakpoint(0x1F801DA8, "Write", 2, "FIFO_WRITE",
     function(addr, width, cause, value)
         halfword_count = halfword_count + 1
@@ -495,7 +495,8 @@ PCSX.addBreakpoint(0x1F801DA8, "Write", 2, "FIFO_WRITE",
     end
 ):enable()
 
--- SPUCNT 写：只关注 bit5-4 == 1（ManualWrite） deprecated : 游戏并没有用如此低性能的方案
+
+-- SPUCNT 写：只关注 bit5-4 == 1（ManualWrite）
 PCSX.addBreakpoint(0x1F801DAA, "Write", 2, "SPUCNT_WRITE",
     function(addr, width, cause, value)
         local mode = bit32.extract(value, 4, 2)
@@ -504,4 +505,4 @@ PCSX.addBreakpoint(0x1F801DAA, "Write", 2, "SPUCNT_WRITE",
         end
     end
 ):enable()
-]]--
+
